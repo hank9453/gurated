@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ChatGPT 聊天介面</title>
+  <style>
+    /* 全域設定 */
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      background-color: #f5f5f5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    /* 聊天容器 */
+    .chat-container {
+      width: 100%;
+      max-width: 800px;
+      height: 90vh;
+      background-color: #ffffff;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+    }
+    /* 頂部區塊 */
+    .chat-header {
+      padding: 16px;
+      border-bottom: 1px solid #ddd;
+      background-color: #f7f7f7;
+    }
+    /* 聊天內容區 */
+    .chat-body {
+      flex: 1;
+      padding: 16px;
+      overflow-y: auto;
+    }
+    /* 單則聊天訊息 */
+    .chat-message {
+      margin-bottom: 16px;
+      display: flex;
+    }
+    /* 使用者訊息靠右 */
+    .chat-message.user {
+      justify-content: flex-end;
+    }
+    /* Bot 訊息靠左 */
+    .chat-message.bot {
+      justify-content: flex-start;
+    }
+    /* 聊天氣泡 */
+    .chat-bubble {
+      max-width: 60%;
+      padding: 10px;
+      border-radius: 8px;
+      background-color: #e0e0e0;
+      word-wrap: break-word;
+    }
+    /* 使用者氣泡樣式 */
+    .chat-message.user .chat-bubble {
+      background-color: #0084ff;
+      color: #fff;
+    }
+    /* 底部輸入區 */
+    .chat-footer {
+      padding: 16px;
+      border-top: 1px solid #ddd;
+      background-color: #f7f7f7;
+    }
+    .chat-footer form {
+      display: flex;
+    }
+    .chat-input {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    .chat-send-btn {
+      padding: 10px 16px;
+      margin-left: 8px;
+      background-color: #0084ff;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="chat-container">
+    <!-- 標題區 -->
+    <div class="chat-header">
+      <h2>ChatGPT 聊天介面</h2>
+    </div>
+    <!-- 聊天內容區 -->
+    <div class="chat-body" id="chatBody">
+      <!-- 聊天訊息將會顯示在這裡 -->
+    </div>
+    <!-- 輸入區 -->
+    <div class="chat-footer">
+      <form id="chatForm">
+        <input type="text" id="chatInput" class="chat-input" placeholder="請輸入訊息..." autocomplete="off" />
+        <button type="submit" class="chat-send-btn">送出</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // 取得相關 DOM 元素
+    const chatBody = document.getElementById('chatBody');
+    const chatForm = document.getElementById('chatForm');
+    const chatInput = document.getElementById('chatInput');
+
+    // 新增聊天訊息的函式
+    function addMessage(content, sender) {
+      const messageElem = document.createElement('div');
+      messageElem.classList.add('chat-message', sender);
+      
+      const bubbleElem = document.createElement('div');
+      bubbleElem.classList.add('chat-bubble');
+      bubbleElem.textContent = content;
+      
+      messageElem.appendChild(bubbleElem);
+      chatBody.appendChild(messageElem);
+      
+      // 自動捲動至最底部
+      chatBody.scrollTop = chatBody.scrollHeight;
+    }
+
+    // 處理表單送出事件
+    chatForm.addEventListener('submit', function(event) {
+      event.preventDefault();
+      const message = chatInput.value.trim();
+      if (message === '') return;
+      
+      // 顯示使用者訊息
+      addMessage(message, 'user');
+      chatInput.value = '';
+    // 發送請求到後端 API
+    fetch('/chat', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ input_text: message })
+    })
+    .then(response => response.json())
+    .then(data => {
+        let response = data.response;
+        let index = 0;
+        const interval = setInterval(() => {
+            if (index === 0) {
+                addMessage('', 'bot');
+            }
+            if (index < response.length) {
+                const lastMessage = chatBody.lastElementChild;
+                const bubble = lastMessage.querySelector('.chat-bubble');
+                bubble.textContent = response.substring(0, index + 1);
+                index++;
+            } else {
+                clearInterval(interval);
+            }
+        }, 50);
+        return;
+        addMessage(data.response, 'bot');
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        addMessage('抱歉，發生錯誤了。', 'bot');
+    });
+    });
+  </script>
+</body>
+</html>
