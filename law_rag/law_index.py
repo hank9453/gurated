@@ -5,9 +5,8 @@ import json
 # 初始化 BGE-M3 模型
 embed_model = SentenceTransformer("BAAI/bge-m3")
 
-# 指定存儲位置
-persist_directory = "/Users/hank/Desktop/project/chroma"
-client = PersistentClient(path=persist_directory)
+
+client = PersistentClient()
 
 # 創建或獲取 collection
 collection = client.get_or_create_collection("law_articles")
@@ -17,7 +16,7 @@ collection.delete(where={"id": {"$ne": ""}})
 print("Old data deleted successfully.")
 
 # **步驟 2：讀取新的 data.json**
-json_file_path = "/Users/hank/Desktop/project/data.json"
+json_file_path = "data.json"
 with open(json_file_path, "r", encoding="utf-8") as file:
     data_list = json.load(file)
 

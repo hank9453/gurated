@@ -1,7 +1,6 @@
 from chromadb import PersistentClient
 from sentence_transformers import SentenceTransformer
-import json
-# 生成 20 個與《資通安全管理法》第 1-5 條相關的問題，但不直接提及法條
+
 rag_related_questions_20 = [
         {
             "chapter": "資通安全管理法第 1 條",
@@ -274,8 +273,8 @@ rag_related_questions_20 = [
 embed_model = SentenceTransformer("BAAI/bge-m3")
 
 
-persist_directory = "/Users/hank/Desktop/project/chroma"
-client = PersistentClient(path=persist_directory)
+
+client = PersistentClient()
 collection = client.get_or_create_collection("law_articles")
 
 accuray = 0
@@ -291,10 +290,10 @@ for each in rag_related_questions_20:
     found = False
     for metadata in results['metadatas'][0]:
         if metadata['chapter'] == each['chapter']:
-            
             accuray += 1
             found = True
             break
     if not found:
         loss += 1
 
+print(accuray,loss)

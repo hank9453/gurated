@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ChatGPT 聊天介面</title>
+  <title>AI Chat</title>
   <style>
     /* 全域設定 */
     body {
@@ -32,6 +32,8 @@
       padding: 16px;
       border-bottom: 1px solid #ddd;
       background-color: #f7f7f7;
+      text-align: center;
+      font-weight: bold;
     }
     /* 聊天內容區 */
     .chat-body {
@@ -96,7 +98,7 @@
   <div class="chat-container">
     <!-- 標題區 -->
     <div class="chat-header">
-      <h2>ChatGPT 聊天介面</h2>
+      AI Chatbot
     </div>
     <!-- 聊天內容區 -->
     <div class="chat-body" id="chatBody">
@@ -131,10 +133,12 @@
       
       // 自動捲動至最底部
       chatBody.scrollTop = chatBody.scrollHeight;
+
+      return bubbleElem; // 回傳氣泡元素，讓 bot 動態更新
     }
 
     // 處理表單送出事件
-    chatForm.addEventListener('submit', function(event) {
+    chatForm.addEventListener('submit', async function(event) {
       event.preventDefault();
       const message = chatInput.value.trim();
       if (message === '') return;
@@ -142,38 +146,36 @@
       // 顯示使用者訊息
       addMessage(message, 'user');
       chatInput.value = '';
-    // 發送請求到後端 API
-    fetch('/chat', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ input_text: message })
-    })
-    .then(response => response.json())
-    .then(data => {
-        let response = data.response;
-        let index = 0;
-        const interval = setInterval(() => {
-            if (index === 0) {
-                addMessage('', 'bot');
-            }
-            if (index < response.length) {
-                const lastMessage = chatBody.lastElementChild;
-                const bubble = lastMessage.querySelector('.chat-bubble');
-                bubble.textContent = response.substring(0, index + 1);
-                index++;
-            } else {
-                clearInterval(interval);
-            }
-        }, 50);
-        return;
-        addMessage(data.response, 'bot');
-    })
-    .catch(error => {
+
+      // 顯示 bot 的輸出框，稍後動態更新
+      const botBubble = addMessage('', 'bot');
+
+      try {
+        // 發送請求到後端 API
+        const response = await fetch('/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ input_text: message })
+        });
+
+        // 逐步讀取串流數據
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let botResponse = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          botResponse += decoder.decode(value, { stream: true });
+
+          // 動態更新 bot 訊息
+          botBubble.textContent = botResponse;
+          chatBody.scrollTop = chatBody.scrollHeight; // 自動捲動
+        }
+      } catch (error) {
         console.error('Error:', error);
-        addMessage('抱歉，發生錯誤了。', 'bot');
-    });
+        botBubble.textContent = '抱歉，發生錯誤了。';
+      }
     });
   </script>
 </body>
