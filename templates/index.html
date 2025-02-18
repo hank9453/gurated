@@ -2,113 +2,26 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8" />
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AI Chat</title>
-  <style>
-    /* 全域設定 */
-    body {
-      margin: 0;
-      padding: 0;
-      font-family: Arial, sans-serif;
-      background-color: #f5f5f5;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-    }
-    /* 聊天容器 */
-    .chat-container {
-      width: 100%;
-      max-width: 800px;
-      height: 90vh;
-      background-color: #ffffff;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      display: flex;
-      flex-direction: column;
-    }
-    /* 頂部區塊 */
-    .chat-header {
-      padding: 16px;
-      border-bottom: 1px solid #ddd;
-      background-color: #f7f7f7;
-      text-align: center;
-      font-weight: bold;
-    }
-    /* 聊天內容區 */
-    .chat-body {
-      flex: 1;
-      padding: 16px;
-      overflow-y: auto;
-    }
-    /* 單則聊天訊息 */
-    .chat-message {
-      margin-bottom: 16px;
-      display: flex;
-    }
-    /* 使用者訊息靠右 */
-    .chat-message.user {
-      justify-content: flex-end;
-    }
-    /* Bot 訊息靠左 */
-    .chat-message.bot {
-      justify-content: flex-start;
-    }
-    /* 聊天氣泡 */
-    .chat-bubble {
-      max-width: 60%;
-      padding: 10px;
-      border-radius: 8px;
-      background-color: #e0e0e0;
-      word-wrap: break-word;
-    }
-    /* 使用者氣泡樣式 */
-    .chat-message.user .chat-bubble {
-      background-color: #0084ff;
-      color: #fff;
-    }
-    /* 底部輸入區 */
-    .chat-footer {
-      padding: 16px;
-      border-top: 1px solid #ddd;
-      background-color: #f7f7f7;
-    }
-    .chat-footer form {
-      display: flex;
-    }
-    .chat-input {
-      flex: 1;
-      padding: 10px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      box-sizing: border-box;
-    }
-    .chat-send-btn {
-      padding: 10px 16px;
-      margin-left: 8px;
-      background-color: #0084ff;
-      color: #fff;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-  </style>
 </head>
-<body>
-  <div class="chat-container">
+<body class="flex justify-center items-center h-screen bg-gray-900 text-gray-300">
+  <div class="w-full max-w-2xl h-[90vh] bg-gray-800 rounded-xl flex flex-col shadow-lg">
     <!-- 標題區 -->
-    <div class="chat-header">
+    <div class="p-4 text-center font-bold bg-gray-700 text-white rounded-t-xl">
       AI Chatbot
     </div>
     <!-- 聊天內容區 -->
-    <div class="chat-body" id="chatBody">
+    <div id="chatBody" class="flex-1 p-4 overflow-y-auto flex flex-col space-y-3">
       <!-- 聊天訊息將會顯示在這裡 -->
     </div>
     <!-- 輸入區 -->
-    <div class="chat-footer">
-      <form id="chatForm">
-        <input type="text" id="chatInput" class="chat-input" placeholder="請輸入訊息..." autocomplete="off" />
-        <button type="submit" class="chat-send-btn">送出</button>
+    <div class="p-4 border-t border-gray-600 bg-gray-700 rounded-b-xl flex items-center">
+      <form id="chatForm" class="flex w-full">
+        <input type="text" id="chatInput" class="flex-1 p-2 bg-gray-800 text-white rounded-lg focus:outline-none" placeholder="請輸入訊息..." autocomplete="off" />
+        <button type="submit" class="ml-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">送出</button>
       </form>
     </div>
   </div>
@@ -118,38 +31,51 @@
     const chatBody = document.getElementById('chatBody');
     const chatForm = document.getElementById('chatForm');
     const chatInput = document.getElementById('chatInput');
-
-    // 新增聊天訊息的函式
+  
+    // 新增聊天訊息的函式（支援 Markdown）
     function addMessage(content, sender) {
       const messageElem = document.createElement('div');
-      messageElem.classList.add('chat-message', sender);
-      
+      messageElem.classList.add('flex');
+      messageElem.classList.add(sender === 'user' ? 'justify-end' : 'justify-start');
+  
       const bubbleElem = document.createElement('div');
-      bubbleElem.classList.add('chat-bubble');
-      bubbleElem.textContent = content;
-      
+      bubbleElem.classList.add('p-3', 'rounded-lg', 'max-w-[75%]', 'text-sm', 'leading-relaxed', 'break-words');
+  
+      if (sender === 'user') {
+        bubbleElem.classList.add('bg-blue-500', 'text-white', 'rounded-br-sm');
+      } else {
+        bubbleElem.classList.add('bg-gray-600', 'text-white', 'rounded-bl-sm');
+      }
+  
+      // 解析 Markdown
+      if (sender === 'bot') {
+        bubbleElem.innerHTML = marked.parse(content);
+      } else {
+        bubbleElem.textContent = content;
+      }
+  
       messageElem.appendChild(bubbleElem);
       chatBody.appendChild(messageElem);
-      
+  
       // 自動捲動至最底部
       chatBody.scrollTop = chatBody.scrollHeight;
-
+  
       return bubbleElem; // 回傳氣泡元素，讓 bot 動態更新
     }
-
+  
     // 處理表單送出事件
     chatForm.addEventListener('submit', async function(event) {
       event.preventDefault();
       const message = chatInput.value.trim();
       if (message === '') return;
-      
+  
       // 顯示使用者訊息
       addMessage(message, 'user');
       chatInput.value = '';
-
+  
       // 顯示 bot 的輸出框，稍後動態更新
       const botBubble = addMessage('', 'bot');
-
+  
       try {
         // 發送請求到後端 API
         const response = await fetch('/chat', {
@@ -157,19 +83,19 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ input_text: message })
         });
-
+  
         // 逐步讀取串流數據
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let botResponse = '';
-
+  
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
           botResponse += decoder.decode(value, { stream: true });
-
-          // 動態更新 bot 訊息
-          botBubble.textContent = botResponse;
+  
+          // 動態更新 bot 訊息（解析 Markdown）
+          botBubble.innerHTML = marked.parse(botResponse);
           chatBody.scrollTop = chatBody.scrollHeight; // 自動捲動
         }
       } catch (error) {
