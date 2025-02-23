@@ -1,108 +1,313 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <meta charset="UTF-8" />
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AI Chat</title>
+  <title> Chat Cert</title>
 </head>
 <body class="flex justify-center items-center h-screen bg-gray-900 text-gray-300">
-  <div class="w-full max-w-2xl h-[90vh] bg-gray-800 rounded-xl flex flex-col shadow-lg">
-    <!-- 標題區 -->
-    <div class="p-4 text-center font-bold bg-gray-700 text-white rounded-t-xl">
-      AI Chatbot
+  <!-- 初始輸入界面 -->
+  <div id="welcomeScreen" class="absolute w-full h-full flex flex-col justify-center items-center bg-gray-900 text-white text-center">
+    <h1 class="text-3xl font-bold mb-4">我可以為你做什麼？</h1>
+    <div class="w-full max-w-xl">
+      <div class="flex justify-center">
+        <form class="w-full" type="button" aria-haspopup="dialog" aria-expanded="false" onsubmit="event.preventDefault();">
+          <div class="relative z-[1] flex h-full max-w-full flex-1 flex-col">
+            <div class="group relative z-[1] flex w-full items-center">
+              <div class="w-full">
+                <div id="composer-background" class="flex w-full cursor-text flex-col rounded-3xl border border-gray-600 px-3 py-2 bg-gray-800">
+                  <div class="flex flex-col justify-start">
+                    <div class="flex min-h-[44px] items-start pl-1">
+                      <div class="min-w-0 max-w-full flex-1">
+                        <div class="text-white max-h-52 overflow-auto">
+                          <input id="welcomeInput" class="block w-full resize-none border-0 bg-transparent px-0 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-0 shadow-none" autofocus placeholder="詢問Cert小幫手" autocomplete="off" onkeydown="if(event.key === 'Enter') document.getElementById('startChat').click();"/>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+      <button id="startChat" class="mt-4 px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600">開始</button>
     </div>
-    <!-- 聊天內容區 -->
-    <div id="chatBody" class="flex-1 p-4 overflow-y-auto flex flex-col space-y-3">
-      <!-- 聊天訊息將會顯示在這裡 -->
-    </div>
-    <!-- 輸入區 -->
-    <div class="p-4 border-t border-gray-600 bg-gray-700 rounded-b-xl flex items-center">
+  </div>
+
+  <!-- 聊天界面 -->
+  <div id="chatContainer" class="hidden flex flex-col h-screen w-full max-w-4xl bg-gray-900">
+    <div class="flex-1 overflow-y-auto p-4 space-y-5" id="chatBody"></div>
+    <div class="p-4 border-t border-gray-600 bg-gray-800 flex items-center">
       <form id="chatForm" class="flex w-full">
-        <input type="text" id="chatInput" class="flex-1 p-2 bg-gray-800 text-white rounded-lg focus:outline-none" placeholder="請輸入訊息..." autocomplete="off" />
+        <input type="text" id="chatInput" class="flex-1 p-3 bg-gray-700 text-white rounded-2xl focus:outline-none" placeholder="輸入您的訊息..." autocomplete="off" />
         <button type="submit" class="ml-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">送出</button>
       </form>
     </div>
   </div>
 
+  <div id="slideOverPanel" class="fixed inset-0 hidden z-50">
+    <!-- 背景遮罩 -->
+    <!-- 遮罩層 -->
+    <div class="fixed inset-0 bg-gray-500/75 transition-opacity z-4-" id="overlay"></div>
+
+    <!-- 主要側邊欄 -->
+    <div class="pointer-events-auto fixed inset-y-0 right-0 flex max-w-full pl-10 z-50">
+      <div class="pointer-events-auto relative w-screen max-w-md transform transition-all duration-300 ease-in-out translate-x-full bg-gray-800 shadow-xl flex flex-col" id="sidebar">
+      <!-- 標題區 -->
+      <div class="flex items-center justify-between p-4 border-b border-gray-700">
+      <h2 class="text-lg font-semibold text-white">引用內容</h2>
+      <button id="closeButton" class="text-gray-400 hover:text-gray-200 focus:outline-none">
+        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+        </svg>
+      </button>
+      </div>
+
+      <!-- 內容顯示區 -->
+      <div class="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-800" id="contentArea">
+      <p class="text-gray-300">載入中...</p>
+      </div>
+      </div>
+      </div>
+    </div>
   <script>
-    // 取得相關 DOM 元素
+    // DOM 元素
+    const welcomeScreen = document.getElementById('welcomeScreen');
+    const chatContainer = document.getElementById('chatContainer');
+    const startChatButton = document.getElementById('startChat');
+    const welcomeInput = document.getElementById('welcomeInput');
     const chatBody = document.getElementById('chatBody');
     const chatForm = document.getElementById('chatForm');
     const chatInput = document.getElementById('chatInput');
-  
+
+    // 開始聊天按鈕事件
+    startChatButton.addEventListener('click', () => {
+      const userInput = welcomeInput.value.trim();
+      welcomeScreen.classList.add('hidden');
+      chatContainer.classList.remove('hidden');
+      if (userInput) {
+        addMessage(userInput, 'user');
+        handleBotResponse(userInput);
+      } else {
+        addMessage('您好！我是 AI Chatbot，請輸入您的問題，我將竭誠為您解答！', 'bot');
+      }
+    });
+
     // 新增聊天訊息的函式（支援 Markdown）
     function addMessage(content, sender) {
       const messageElem = document.createElement('div');
       messageElem.classList.add('flex');
       messageElem.classList.add(sender === 'user' ? 'justify-end' : 'justify-start');
-  
+
       const bubbleElem = document.createElement('div');
       bubbleElem.classList.add('p-3', 'rounded-lg', 'max-w-[75%]', 'text-sm', 'leading-relaxed', 'break-words');
-  
+
       if (sender === 'user') {
         bubbleElem.classList.add('bg-blue-500', 'text-white', 'rounded-br-sm');
       } else {
         bubbleElem.classList.add('bg-gray-600', 'text-white', 'rounded-bl-sm');
       }
-  
-      // 解析 Markdown
+
       if (sender === 'bot') {
         bubbleElem.innerHTML = marked.parse(content);
       } else {
         bubbleElem.textContent = content;
       }
-  
+
       messageElem.appendChild(bubbleElem);
       chatBody.appendChild(messageElem);
-  
-      // 自動捲動至最底部
       chatBody.scrollTop = chatBody.scrollHeight;
-  
-      return bubbleElem; // 回傳氣泡元素，讓 bot 動態更新
+      return bubbleElem;
     }
-  
+
     // 處理表單送出事件
     chatForm.addEventListener('submit', async function(event) {
       event.preventDefault();
       const message = chatInput.value.trim();
       if (message === '') return;
-  
-      // 顯示使用者訊息
+
       addMessage(message, 'user');
       chatInput.value = '';
-  
-      // 顯示 bot 的輸出框，稍後動態更新
+      handleBotResponse(message);
+    });
+
+    async function handleBotResponse(message) {
       const botBubble = addMessage('', 'bot');
-  
       try {
-        // 發送請求到後端 API
         const response = await fetch('/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ input_text: message })
         });
-  
-        // 逐步讀取串流數據
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let botResponse = '';
-  
         while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          botResponse += decoder.decode(value, { stream: true });
-  
-          // 動態更新 bot 訊息（解析 Markdown）
-          botBubble.innerHTML = marked.parse(botResponse);
-          chatBody.scrollTop = chatBody.scrollHeight; // 自動捲動
-        }
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    // 解析流式輸入
+    const chunk = decoder.decode(value, { stream: true });
+    botResponse += chunk;
+
+    // 檢查是否包含 [END]
+    if (botResponse.includes("[END]")) {
+      const splitResponse = botResponse.split("[END]");
+      botBubble.innerHTML = marked.parse(splitResponse[0].trim()); // 只顯示主要回應
+      chatBody.scrollTop = chatBody.scrollHeight;
+
+      try {
+        const retrievedContext = JSON.parse(splitResponse[1].trim());
+        console.log(retrievedContext)
+        // 創建「參考資料」按鈕
+        const referenceButtonContainer = document.createElement('div');
+        const referenceButton = document.createElement('button');
+        referenceButton.classList.add(
+          'not-prose',
+          'group/footnote',
+          'mb-2',
+          'mt-3',
+          'flex',
+          'w-fit',
+          'items-center',
+          'gap-1.5',
+          'rounded-xl',
+          'border',
+          'border-token-border-light',
+          'bg-token-main-surface-primary',
+          'py-2',
+          'pl-3',
+          'pr-2.5'
+        );
+referenceButton.textContent = '參考資料';
+
+// 設定點擊事件顯示引用內容
+referenceButton.addEventListener('click', () => {
+  openSidebar(retrievedContext);
+});
+
+// 插入按鈕到回應區塊
+referenceButtonContainer.appendChild(referenceButton);
+botBubble.appendChild(referenceButtonContainer);
+
+
+      } catch (error) {
+        console.error("解析 retrieved_context 失敗:", error);
+      }
+      
+      break; // 跳出迴圈，確保處理完畢
+    }
+
+    // 即時更新 UI
+    botBubble.innerHTML = marked.parse(botResponse);
+    chatBody.scrollTop = chatBody.scrollHeight;
+  }
+
+
       } catch (error) {
         console.error('Error:', error);
         botBubble.textContent = '抱歉，發生錯誤了。';
       }
-    });
+    }
+
+
+    function openPDFInNewTab(fileName) {
+
+
+      // 立即開啟新分頁，避免被瀏覽器阻擋 pop-up
+      var newTab = window.open('about:blank', '_blank');
+
+
+      fetch('/preview_pdf', {
+        method: 'POST',
+        body: JSON.stringify({ file_name: fileName }),
+        headers: { 'Content-Type': 'application/json' }
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('檔案不存在或發生錯誤');
+        }
+        return response.blob();
+      })
+      .then(blob => {
+        // 將 blob 轉為 URL，並指定給新分頁
+        var blobUrl = URL.createObjectURL(blob);
+        newTab.location.href = blobUrl;
+      })
+      .catch(error => {
+        newTab.close(); // 發生錯誤則關閉新分頁
+        alert('無法打開 PDF: ' + error.message);
+      });
+    }
+    // 顯示側邊欄
+    function openSidebar(retrievedContext) {
+      const content = retrievedContext.map(item => {
+      const div = document.createElement("div");
+      div.className = "p-4 bg-gray-100 rounded-md shadow-sm";
+      const h3 = document.createElement("h3");
+      h3.innerHTML = `<span onclick="openPDFInNewTab('${item.file_name}')" class="text-sm font-bold text-blue-500 cursor-pointer hover:text-blue-700">${item.file_name}</span>`;
+      const p = document.createElement("p");
+      p.className = "text-sm text-gray-600";
+      p.textContent = item.preview+"...";
+      div.appendChild(h3);
+      div.appendChild(p);
+      return div.outerHTML;
+  }).join("");
+
+  contentArea.innerHTML = content;
+
+        slideOverPanel.classList.remove("hidden");
+        setTimeout(() => sidebar.classList.remove("translate-x-full"), 10);
+    }
+
+    $(document).ready(function () {
+  function closeSidebar() {
+    console.log("關閉側邊欄觸發");
+    $("#sidebar").addClass("translate-x-full"); // 讓側邊欄滑回去
+    setTimeout(() => {
+      $("#slideOverPanel").addClass("hidden"); // 完全隱藏
+    }, 300);
+  } 
+  // 點擊遮罩時關閉側邊欄
+  $("#overlay").on("click", closeSidebar);
+
+  // 點擊關閉按鈕
+  $("#closeButton").on("click", closeSidebar);
+});
+
+
   </script>
 </body>
 </html>
+<style>
+  /* Webkit browsers (Chrome, Safari, newer versions of Edge) */
+.overflow-y-auto::-webkit-scrollbar {
+  width: 8px;
+  background-color: transparent;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb {
+  background-color: #4B5563;
+  border-radius: 4px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-track {
+  background-color: transparent;
+}
+
+/* Firefox */
+.overflow-y-auto {
+  scrollbar-width: thin;
+  scrollbar-color: #4B5563 transparent;
+}
+
+/* Ensure the scrollbar stays on the right */
+.overflow-y-auto {
+  margin-right: 0;
+  padding-right: 0;
+}
+</style>
