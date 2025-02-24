@@ -1,6 +1,7 @@
 flask>=2.0.0
-langchain lastest
-langchain-community lastest
+langchain 
+langchain-community 
+langchain_ollama
 faiss-cpu>=1.7.4
 sentence-transformers>=2.2.2
 numpy>=1.21.0
