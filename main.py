@@ -7,7 +7,7 @@ import json
 import numpy as np
 from langchain_core.runnables import RunnableSequence
 from flask import send_file
-import os, zipfile, io
+import os
 
 app = Flask(__name__)
 
