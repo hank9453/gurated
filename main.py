@@ -19,7 +19,7 @@ with open("faiss_metadata.json", "r", encoding="utf-8") as f:
 
 llm = OllamaLLM(
     model="jcai/llama-3-taiwan-8b-instruct:q4_k_m",
-    temperature=0.3,top_p=0.9
+    temperature=0.3,top_p=0.6
 )
 
 prompt_template = PromptTemplate(
