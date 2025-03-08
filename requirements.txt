@@ -2,6 +2,8 @@ flask>=2.0.0
 langchain 
 langchain-community 
 langchain_ollama
-faiss-cpu>=1.7.4
-sentence-transformers>=2.2.2
+faiss-cpu
+sentence-transformers
 numpy>=1.21.0
+FlagEmbedding
+pymupdf
