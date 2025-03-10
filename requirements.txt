@@ -7,3 +7,4 @@ sentence-transformers
 numpy>=1.21.0
 FlagEmbedding
 pymupdf
+FlagEmbedding
